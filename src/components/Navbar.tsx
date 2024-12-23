@@ -44,8 +44,11 @@ const Navbar = () => {
             <Link to="/" className="text-gray-300 hover:text-white px-3 py-2 rounded-md">
               Home
             </Link>
-            <Link to="/chatbot" className="text-gray-300 hover:text-white px-3 py-2 rounded-md">
+            <Link to="/questionnaire" className="text-gray-300 hover:text-white px-3 py-2 rounded-md">
               Questionnaire
+            </Link>
+            <Link to="/ai-agent" className="text-gray-300 hover:text-white px-3 py-2 rounded-md">
+              AI Agent
             </Link>
             <Link to="/portfolio" className="text-gray-300 hover:text-white px-3 py-2 rounded-md">
               Portfolio

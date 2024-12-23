@@ -7,7 +7,8 @@ import '@rainbow-me/rainbowkit/styles.css'
 
 import Navbar from './components/Navbar'
 import Home from './components/Home'
-import Chatbot from './components/Chatbot'
+import Questionnaire from './components/Questionnaire'
+import AIAgent from './components/AIAgent'
 import './App.css'
 
 const config = getDefaultConfig({
@@ -28,7 +29,8 @@ function App() {
               <Navbar />
               <Routes>
                 <Route path="/" element={<Home />} />
-                <Route path="/chatbot" element={<Chatbot />} />
+                <Route path="/questionnaire" element={<Questionnaire />} />
+                <Route path="/ai-agent" element={<AIAgent />} />
                 <Route path="/portfolio" element={<Home />} />
               </Routes>
             </div>

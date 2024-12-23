@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-const Chatbot = () => {
+const Questionnaire = () => {
   const [managingLiquidity, setManagingLiquidity] = useState('')
   const [liquidationStrategies, setLiquidationStrategies] = useState('')
   const [tokenPledge, setTokenPledge] = useState('')
@@ -163,5 +163,5 @@ const Chatbot = () => {
   )
 }
 
-export default Chatbot
+export default Questionnaire
 

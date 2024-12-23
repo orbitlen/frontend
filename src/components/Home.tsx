@@ -220,7 +220,7 @@ const Home = () => {
               {/* Paydium Section */}
               <div className="flex flex-col items-center min-w-[180px]">
                 <div className="bg-blue-500/10 p-5 rounded-lg border border-blue-500/20">
-                  <p className="text-xl font-medium mb-2">Paydium AMM</p>
+                  <p className="text-xl font-medium mb-2">Raydium AMM</p>
                   <div className="bg-blue-500/10 p-3 rounded-lg border border-blue-500/20 mb-2">
                     <p className="text-sm">Deposit/Withdraw</p>
                   </div>
