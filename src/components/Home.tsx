@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from 'react'
-import { OrbitLen } from "../assets/orbit_len";
+import idl from "../assets/orbit_len.json";
 import * as anchor from "@coral-xyz/anchor";
-import { Program } from "@coral-xyz/anchor";
+import { Program, AnchorProvider } from "@coral-xyz/anchor";
 import {
   Keypair,
   LAMPORTS_PER_SOL,
   PublicKey,
   Transaction,
   sendAndConfirmTransaction,
+  Connection
 } from "@solana/web3.js";
+import { Wallet } from '@coral-xyz/anchor/dist/cjs/provider';
 
 
 const Home = () => {
@@ -22,58 +24,57 @@ const Home = () => {
     asset_shares: '0'
   })
 
-  // 生成模拟数据的函数
-  const generateMockData = () => {
-    // 生成 1000-9999 之间的随机数
-    const generateNumber = () => Math.floor(Math.random() * 9000 + 1000).toString()
-    
-    setRayShares({
-      liability_shares: generateNumber(),
-      asset_shares: generateNumber()
-    })
-    
-    setWifShares({
-      liability_shares: generateNumber(),
-      asset_shares: generateNumber()
-    })
-  }
-
-  useEffect(() => {
-    // 初始生成数据
-    generateMockData()
-
-    // 每10秒更新一次数据
-    const interval = setInterval(generateMockData, 10000)
-
-    // 清理定时器
-    return () => clearInterval(interval)
-  }, [])
-
   const RayBank = new PublicKey("DeNFenr4diuZP8hTYeW8Rw9C7dm5Z5DSu8URkSpt8Tmj");
   const WIFBank = new PublicKey("GBmyafm37crVXMZuUYHYZ8d73gbyjxpEeXqCbM8Np9hy");
-  // RayBank: DeNFenr4diuZP8hTYeW8Rw9C7dm5Z5DSu8URkSpt8Tmj, WIFBank: GBmyafm37crVXMZuUYHYZ8d73gbyjxpEeXqCbM8Np9hy
-  // useEffect(() => {
-  //   const fetchShares = async () => {
-  //     // 设置 Anchor provider
-  //     anchor.setProvider(anchor.AnchorProvider.env());
 
-  //     // 获取 OrbitLen 程序实例
-  //     const program = anchor.workspace.OrbitLen as Program<OrbitLen>;
-  //     try {
-  //       const bankInfos = await program.account.bank.fetchMultiple([
-  //         RayBank,
-  //         WIFBank,
-  //       ]);
-  //       console.log("RayBank:", JSON.stringify(bankInfos[0], null, 2));
-  //       console.log("WIFBank:", JSON.stringify(bankInfos[1], null, 2));
+  useEffect(() => {
+    const fetchShares = async () => {
+      console.log("window.phantom.solana ---> ", window.phantom.solana);
 
-  //     } catch (error) {
-  //       console.error('Error fetching shares:', error)
-  //     }
-  //   }
+      const wallet = {
+        signTransaction: async (tx) => window.phantom.solana.signTransaction(tx),
+        signAllTransactions: async (txs) => window.solana.signAllTransactions(txs),
+        publicKey: window.phantom.solana.publicKey,
+      };
 
-  //   fetchShares()
-  // }, [])
+      const provider = new AnchorProvider(new Connection(import.meta.env.VITE_RPC), wallet as Wallet);
+
+      const program = new Program(idl, provider);
+
+      try {
+        const bankInfos = await program.account.bank.fetchMultiple([
+          RayBank,
+          WIFBank,
+        ]);
+        let rayBank = bankInfos[0]
+        let wifBank = bankInfos[1]
+
+        let rayBankTotalAssetShares = rayBank.totalAssetShares;
+        let rayBankTotalLiabilityShares = rayBank.totalLiabilityShares;
+
+        let wifBankTotalAssetShares = wifBank.totalAssetShares;
+        let wifBankTotalLiabilityShares = wifBank.totalLiabilityShares;
+
+        console.log("RayBank:", JSON.stringify(bankInfos[0], null, 2));
+        console.log("WIFBank:", JSON.stringify(bankInfos[1], null, 2));
+
+        setRayShares({
+          liability_shares: rayBankTotalLiabilityShares.toString(),
+          asset_shares: rayBankTotalAssetShares.toString(),
+        });
+
+        setWifShares({
+          liability_shares: wifBankTotalLiabilityShares.toString(),
+          asset_shares: wifBankTotalAssetShares.toString(),
+        });
+
+      } catch (error) {
+        console.error('Error fetching shares:', error)
+      }
+    }
+
+    fetchShares()
+  }, [])
 
   return (
     <div className="min-h-screen bg-gray-900 text-white p-8">
@@ -175,7 +176,7 @@ const Home = () => {
                       <p className="text-sm text-gray-400 mt-1">Contract</p>
                     </div>
                   </div>
-                  
+
                   <div className="space-y-6">
                     {/* RAY Token */}
                     <div className="bg-blue-500/10 p-5 rounded-xl border border-blue-500/20 hover:bg-blue-500/20 transition-colors">
