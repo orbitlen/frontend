@@ -10,68 +10,8 @@ interface Message {
     timestamp: Date
 }
 
-interface TransferEntities {
-    amount?: string;
-    to_addr?: string;
-    transfer_token?: string;
-}
-
-interface BalanceEntities {
-    balance_token?: string;
-}
-
-
-interface Entity {
-    body: string;
-    confidence: number;
-    end: number;
-    entities: Record<string, unknown>;
-    id: string;
-    name: string;
-    role: string;
-    start: number;
-    suggested: boolean;
-    type: string;
-    value: string;
-}
-
-interface Intent {
-    confidence: number;
-    id: string;
-    name: string;
-}
-
-interface WitAIResponse {
-    entities: {
-        [key: string]: Entity[];
-    };
-    intents: Intent[];
-    text: string;
-    traits: Record<string, unknown>;
-}
-
-
-const WitAIUrl = "https://api.wit.ai/message?v=20241224&q=";
-const witAIAuth = 'Bearer ' + import.meta.env.VITE_WIT_AI_TOKEN;
-
-
-const userARay = new PublicKey("4szNuBQkjUBmdsDCCyDEhHvk1Bqi7HWvF7ZokL69bTsM")
-
-const userAWIF = new PublicKey(
-    "BS5ZLt5GCiu5dfaQxna1xPSA7fzoN593JK86wgify3Zn"
-);
-const userBWIF = new PublicKey(
-    "CM3FzZ5SXh5Q3nmaArYfXaVey7VuEwdr7rbFDGkqbbtq"
-);
-const WIFMint = new PublicKey(
-    "6LYZ446PHTThBJtN7R3bCv6dkBdS83Zrm2cqtnekRQnV"
-);
-const UserB = new PublicKey(
-    "FefN4V9GnLaNvgBSonxgkEsWy4Z97e8Y35jVw6SWYYzU"
-);
-
-const coinMint: PublicKey = new PublicKey("7JLuhte13cbFdzphGVkcvLDW3SiXPDrU78Qvu221svho") // Ray
-const pcMint: PublicKey = new PublicKey("DceACY73GHpkFWLDn3cfy9QBUgDWH4SXRcFJ4pGUPi3A") // USDC
+const serverPort = import.meta.env.VITE_SERVER_PORT;
+const agentId = import.meta.env.VITE_AGENT_ID;
 
 const AIAgent = () => {
 
@@ -85,116 +25,63 @@ const AIAgent = () => {
     ])
     const [input, setInput] = useState('')
     const [isLoading, setIsLoading] = useState(false)
-    const [agent, setAgent] = useState<SolanaAgentKit | null>(null)
-    const [tools, setTools] = useState<any>(null)
-
-    useEffect(() => {
-
-        console.log("import.meta.env.userA", import.meta.env.VITE_USER_A);
-
-        const initializeAgent = () => {
-            const newAgent = new SolanaAgentKit(
-                import.meta.env.VITE_USER_A as string,
-                import.meta.env.VITE_RPC as string,
-                import.meta.env.VITE_OPEN_AI_KEY as string
-            )
-            const newTools = createSolanaTools(newAgent)
-
-            setAgent(newAgent)
-            setTools(newTools)
-        }
-
-        initializeAgent()
-    }, [])
 
     const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault()
-        if (!input.trim() || !agent || !tools) return
+        e.preventDefault();
+        if (!input.trim()) return;
 
         const userMessage: Message = {
             role: 'user',
             content: input,
             timestamp: new Date()
-        }
-        setMessages(prev => [...prev, userMessage])
-        setInput('')
-        setIsLoading(true)
+        };
+        setMessages(prev => [...prev, userMessage]);
+        setInput('');
+        setIsLoading(true);
 
         try {
             let assistantMessage: Message = {
                 role: 'assistant',
                 timestamp: new Date(),
                 content: ""
-            }
+            };
 
-            // wit AI parse
-            let witAIRes = await fetch(WitAIUrl + input.trim(), { headers: { Authorization: witAIAuth } })
-            const witAIData = await witAIRes.json();
-            console.log("witAIData:", witAIData);
-
-
-            const intentName = witAIData.intents[0].name;
-
-            if (intentName === "transfer") {
-                const result: TransferEntities = {};
-                if (witAIData.entities) {
-                    for (const [key, values] of Object.entries(witAIData.entities)) {
-                        const entityName = key.split(":")[0] as keyof TransferEntities;
-                        const entityValues = values as Entity[];
-                        if (entityValues.length > 0) {
-                            result[entityName] = entityValues[0].value;
-                        }
-                    }
+            const response = await fetch(
+                `http://localhost:${serverPort}/${agentId}/message`,
+                {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        text: input,
+                        userId: "user",
+                        userName: "User",
+                    }),
                 }
-                let agentRes;
-                if (result.to_addr === "lantianlaoli" && result.transfer_token?.toLowerCase() === "wif") {
-                    agentRes = await agent.transfer(UserB, Number(result.amount), WIFMint);
-                    console.log("trade:agentRes", agentRes);
-                    let solscanlink = `https://solscan.io/tx/${agentRes}?cluster=devnet`;
-                    assistantMessage.content = "trade result: " + solscanlink || 'I apologize, but I couldn\'t process that request.'
-                }
+            );
 
+            const data = await response.json();
+            let msg = "";
+            data.forEach((message) => {
+                console.log(`${"Agent"}: ${message.text}`);
 
-            } else if (intentName === "balance") {
-                const result: BalanceEntities = {};
-                if (witAIData.entities) {
-                    for (const [key, values] of Object.entries(witAIData.entities)) {
-                        const entityName = key.split(":")[0] as keyof BalanceEntities;
-                        const entityValues = values as Entity[];
-                        if (entityValues.length > 0) {
-                            result[entityName] = entityValues[0].value;
-                        }
-                    }
-                }
-                let agentRes;
-                if (result.balance_token?.toLowerCase() === "ray") {
-                    agentRes = await agent.getBalance(userARay);
-                } else if (result.balance_token?.toLowerCase() === "wif") {
-                    agentRes = await agent.getBalance(userAWIF);
-                }
-                console.log("balance:agentRes", agentRes);
-                assistantMessage.content = "balance result: " + agentRes || 'I apologize, but I couldn\'t process that request.'
-            } else {
-                assistantMessage = {
-                    role: 'assistant',
-                    content: "unknow intent",
-                    timestamp: new Date()
-                }
-            }
-            setMessages(prev => [...prev, assistantMessage])
+                msg += message.text;
+            });
 
+            assistantMessage.content = msg || 'I apologize, but I couldn\'t process that request.';
+
+            setMessages(prev => [...prev, assistantMessage]);
         } catch (error) {
-            console.error('Error:', error)
+            console.error('Error:', error);
             const errorMessage: Message = {
                 role: 'assistant',
                 content: 'I apologize, but I encountered an error. Please try again.',
                 timestamp: new Date()
-            }
-            setMessages(prev => [...prev, errorMessage])
+            };
+            setMessages(prev => [...prev, errorMessage]);
         } finally {
-            setIsLoading(false)
+            setIsLoading(false);
         }
-    }
+    };
 
     return (
         <div className="h-[calc(100vh-64px)] bg-gray-900 flex flex-col">
@@ -286,4 +173,4 @@ const AIAgent = () => {
     )
 }
 
-export default AIAgent 
+export default AIAgent
